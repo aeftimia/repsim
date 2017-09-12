@@ -2,6 +2,8 @@
 Simulate reputation of users
 '''
 
+import random
+
 class User:
     def __init__(self,
                 system,
@@ -32,6 +34,16 @@ class User:
                                     user=self,
                                     conformity=conformity,
                                     id=i) for i in range(identities)]
+        self.__identity_id = 0
+
+    def interact(self):
+        for identity in self.identities:
+            identity.interact()
+
+    def upload(self, video):
+        self.identities[self.__identity_id].upload(video)
+        self.__identity_id += 1
+        self.__identity_id %= len(self.identities)
 
     def __hash__(self):
         return  self.id
@@ -53,6 +65,8 @@ class Identity:
         self.conformity = conformity
         self.system = user.system
         self.id = id
+        self.uploads = {}
+        self.reputation = self.system.initial_reputation 
 
     def interact(self):
 
@@ -71,13 +85,18 @@ class Identity:
                 if user == self.user:
                     continue
                 for identity in user.identities:
-                    identities.append(identity)
-            identity = random.choice(identities)
+                    if identity.uploads:
+                        identities.append(identity)
+            
+            if not identities:
+                return
+
+            random.choice(identities)
 
             video = random.choice(identity.uploads.keys())
             rating = identity.get_rating(video)
             majority_vote = rating > 0
-            if random.random() < conformity and majority_vote:
+            if random.random() < self.conformity and majority_vote:
                 vote = ["thumbs_up"]
             else:
                 vote = ["thumbs_down"]
@@ -99,7 +118,7 @@ class Identity:
             return
 
         for tag in votes:
-            if tag in identity.uploads[video]:
+            if tag not in identity.uploads[video]:
                 identity.uploads[video][tag] = [identity]
             else:
                 identity.uploads[video][tag].append(identity)
@@ -121,9 +140,10 @@ class Identity:
 
 class System:
 
-    def __init__(self, cost_function):
+    def __init__(self, cost_function, initial_reputation=0):
         self.users = []
         self.cost_function = cost_function
+        self.initial_reputation = initial_reputation
 
     def create_user(self,
                     activity=1.0,
@@ -143,8 +163,10 @@ class System:
 
     def interact(self, N=1):
         for _ in range(N):
-            for user_id in random.shuffle(range(len(self.users))):
-                self.users[user_id].interact
+            user_ids = range(len(self.users))
+            random.shuffle(user_ids)
+            for user_id in user_ids:
+                self.users[user_id].interact()
 
     def update_reputation(self, identities):
         '''
@@ -155,7 +177,7 @@ class System:
         num_identities = len(identities)
         total_reputation = sum([identity.reputation for identity in identities])
         
-        cost_funtion = self.cost_function
+        cost_function = self.cost_function
         reputations = []
         for i, identity in enumerate(identities):
             reputations.append(cost_function(i, identities))
