@@ -140,11 +140,12 @@ class Identity:
 
 class System:
 
-    def __init__(self, cost_function, initial_reputation=0):
+    def __init__(self, cost_function, initial_reputation=0.1):
         self.users = []
         self.cost_function = cost_function
         self.initial_reputation = initial_reputation
         self.identities = set()
+        self.reputation_history = []
 
     def create_user(self,
                     activity=1.0,
@@ -160,7 +161,9 @@ class System:
                 identities)
 
         self.users.append(user)
-        self.identities.add(user.identities)
+        for identity in user.identities:
+            self.identities.add(identity)
+
         return user
 
     def interact(self, N=1):
@@ -169,6 +172,9 @@ class System:
             random.shuffle(user_ids)
             for user_id in user_ids:
                 self.users[user_id].interact()
+
+        self.track_reputations()
+
 
     def update_reputation(self, identities):
         '''
@@ -186,5 +192,11 @@ class System:
 
         for identity, reputation in zip(identities, reputations):
             identity.reputation = reputation
+            
 
+    def track_reputations(self):
+        reputations = []
+        for identity in sorted(self.identities, key=lambda x: hash(x)):
+            reputations.append(identity.reputation)
 
+        self.reputation_history.append(reputations)
