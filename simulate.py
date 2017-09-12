@@ -144,6 +144,7 @@ class System:
         self.users = []
         self.cost_function = cost_function
         self.initial_reputation = initial_reputation
+        self.identities = set()
 
     def create_user(self,
                     activity=1.0,
@@ -159,6 +160,7 @@ class System:
                 identities)
 
         self.users.append(user)
+        self.identities.add(user.identities)
         return user
 
     def interact(self, N=1):
@@ -184,4 +186,5 @@ class System:
 
         for identity, reputation in zip(identities, reputations):
             identity.reputation = reputation
+
 
